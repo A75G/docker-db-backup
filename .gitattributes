@@ -1,2 +1,2 @@
-# Declare files that will always have LF line endings on checkout.
-*.* text eol=lf
+# Keep all repository text files LF on checkout, including extensionless scripts.
+* text=auto eol=lf

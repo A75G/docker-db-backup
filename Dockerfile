@@ -23,6 +23,8 @@ RUN source /assets/functions/00-container && \
     \
     package update && \
     package upgrade && \
+    echo '@edge_main https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+    package update && \
     package install .db-backup-build-deps \
                     build-base \
                     bzip2-dev \
@@ -55,8 +57,6 @@ RUN source /assets/functions/00-container && \
                     openssl \
                     pigz \
                     pixz \
-                    postgresql18 \
-                    postgresql18-client \
                     pv \
                     py3-botocore \
                     py3-colorama \
@@ -74,6 +74,7 @@ RUN source /assets/functions/00-container && \
                     zip \
                     zstd \
                     && \
+    apk add --no-cache postgresql18-client --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main && \
     \
     case "$(uname -m)" in \
 	    "x86_64" ) mssql=true ; mssql_arch=amd64; influx2=true ; influx_arch=amd64; ;; \
@@ -130,3 +131,5 @@ RUN source /assets/functions/00-container && \
             /usr/src/*
 
 COPY install  /
+
+RUN find /assets /etc/cont-init.d /usr/local/bin -type f -exec sed -i 's/\r$//' {} +
