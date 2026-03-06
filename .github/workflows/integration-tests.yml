@@ -74,7 +74,7 @@ jobs:
           sleep 10
           docker exec dbbackup-pg backup-now >/dev/null
 
-          PG_FILE="$(basename "$(ls -1 "${PG_BACKUP_DIR}"/pgsql_testdb_pg18-ci_*.sql.zst | head -n1)")"
+          PG_FILE="$(docker exec dbbackup-pg sh -lc 'ls -1 /backup/pgsql_testdb_pg18-ci_*.sql.zst | head -n1 | xargs -n1 basename')"
           test -n "${PG_FILE}"
 
           docker exec pg18-ci psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS restoredb;" >/dev/null
@@ -116,7 +116,7 @@ jobs:
           sleep 10
           docker exec dbbackup-mysql backup-now >/dev/null
 
-          MYSQL_FILE="$(basename "$(ls -1 "${MYSQL_BACKUP_DIR}"/mariadb_appdb_mysql8-ci_*.sql.zst | head -n1)")"
+          MYSQL_FILE="$(docker exec dbbackup-mysql sh -lc 'ls -1 /backup/mariadb_appdb_mysql8-ci_*.sql.zst | head -n1 | xargs -n1 basename')"
           test -n "${MYSQL_FILE}"
 
           docker exec mysql8-ci mysql -uroot -prootpass -e "DROP DATABASE IF EXISTS restoredb; CREATE DATABASE restoredb;" >/dev/null
@@ -144,6 +144,6 @@ jobs:
 
           sleep 10
           docker exec dbbackup-redis backup-now >/dev/null
-          ls -1 "${REDIS_BACKUP_DIR}"/redis_all_redis7-ci_*.rdb.zst >/dev/null
+          docker exec dbbackup-redis sh -lc 'ls -1 /backup/redis_all_redis7-ci_*.rdb.zst >/dev/null'
 
           echo "Integration tests passed."
