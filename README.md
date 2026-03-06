@@ -301,7 +301,7 @@ Encryption occurs after compression and the encrypted filename will have a `.gpg
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------- | ------- |
 | `DEFAULT_AUTH`     | (Optional) Authentication Database                                                                                                   |         | x       |
 | `DEFAULT_PORT`     | MongoDB Port                                                                                                                         | `27017` | x       |
-| `MONGO_CUSTOM_URI` | If you wish to override the MongoDB Connection string enter it here e.g. `mongodb+srv://username:password@cluster.id.mongodb.net`    |         | x       |
+| `MONGO_CUSTOM_URI` | If you wish to override the MongoDB connection string enter it here e.g. `mongodb+srv://cluster.id.mongodb.net` (set auth via separate env vars/secrets) |         | x       |
 |                    | This environment variable will be parsed and populate the `DB_NAME` and `DB_HOST` variables to properly build your backup filenames. |         |         |
 |                    | You can override them by making your own entries                                                                                     |         |         |
 
@@ -575,7 +575,7 @@ Encryption will occur after compression and the resulting filename will have a `
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------- | ------- |
 | `DB01_AUTH`             | (Optional) Authentication Database                                                                                                   |         |         |
 | `DB01_PORT`             | MongoDB Port                                                                                                                         | `27017` | x       |
-| `DB01_MONGO_CUSTOM_URI` | If you wish to override the MongoDB Connection string enter it here e.g. `mongodb+srv://username:password@cluster.id.mongodb.net`    |         | x       |
+| `DB01_MONGO_CUSTOM_URI` | If you wish to override the MongoDB connection string enter it here e.g. `mongodb+srv://cluster.id.mongodb.net` (set auth via separate env vars/secrets) |         | x       |
 |                         | This environment variable will be parsed and populate the `DB_NAME` and `DB_HOST` variables to properly build your backup filenames. |         |         |
 |                         | You can override them by making your own entries                                                                                     |         |         |
 
