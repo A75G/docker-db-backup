@@ -2,24 +2,33 @@ name: build_image
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "*"
-    paths:
-      - "**"
-      - "!README.md"
+  workflow_run:
+    workflows:
+      - integration_tests
+    types:
+      - completed
 
 permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: build-image-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref || github.event.workflow_run.head_branch || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   build:
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -40,8 +49,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_run' }}
             type=ref,event=tag
             type=sha
 
