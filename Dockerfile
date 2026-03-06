@@ -120,6 +120,15 @@ RUN source /assets/functions/00-container && \
     make && \
     make install && \
     \
+    # Fail the build immediately if any core backup client is unavailable.
+    command -v pg_dump >/dev/null 2>&1 && \
+    command -v psql >/dev/null 2>&1 && \
+    command -v mysqldump >/dev/null 2>&1 && \
+    command -v mongodump >/dev/null 2>&1 && \
+    command -v redis-cli >/dev/null 2>&1 && \
+    command -v sqlite3 >/dev/null 2>&1 && \
+    \
+    \
     package remove .db-backup-build-deps && \
     package cleanup && \
     rm -rf \
@@ -133,3 +142,6 @@ RUN source /assets/functions/00-container && \
 COPY install  /
 
 RUN find /assets /etc/cont-init.d /usr/local/bin -type f -exec sed -i 's/\r$//' {} +
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD sh -ec 'for b in bash pg_dump psql mysqldump mongodump redis-cli sqlite3; do command -v "$b" >/dev/null || exit 1; done'

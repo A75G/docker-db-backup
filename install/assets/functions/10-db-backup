@@ -1314,6 +1314,72 @@ db_backup_container_init() {
     rm -rf /tmp/.container/db-backup-backups
     echo "0 0 * * * /usr/sbin/logrotate_dbbackup >/dev/null 2>&1" > /assets/cron/dbbackup_logrotate
     touch /tmp/.container/db-backup-backups
+    validate_runtime_dependencies
+}
+
+validate_runtime_dependencies() {
+    # Validate runtime tools early to avoid long-running jobs failing late.
+    local missing=""
+    local configured_types=""
+
+    command -v bash > /dev/null 2>&1 || missing="${missing} bash"
+    command -v sudo > /dev/null 2>&1 || missing="${missing} sudo"
+
+    if [ -n "${DB_TYPE}" ] ; then
+        configured_types="$(echo "${DB_TYPE}" | tr '[:upper:]' '[:lower:]')"
+    fi
+
+    local instance_types
+    instance_types=$(printenv | awk -F= '/^DB[0-9][0-9]_TYPE=/{print tolower($2)}')
+    if [ -n "${instance_types}" ] ; then
+        configured_types=$(printf "%s\n%s" "${configured_types}" "${instance_types}" | sed '/^$/d')
+    fi
+
+    # If no DB type is configured yet, check core clients that this image claims to provide.
+    if [ -z "${configured_types}" ] ; then
+        configured_types="pgsql
+mysql
+mongo
+redis
+sqlite3"
+    fi
+
+    for dbtype_check in ${configured_types}; do
+        case "${dbtype_check}" in
+            pgsql | postgres* )
+                command -v pg_dump > /dev/null 2>&1 || missing="${missing} pg_dump"
+                command -v psql > /dev/null 2>&1 || missing="${missing} psql"
+            ;;
+            mysql | mariadb )
+                command -v mysqldump > /dev/null 2>&1 || missing="${missing} mysqldump"
+                command -v mariadb > /dev/null 2>&1 || missing="${missing} mariadb"
+            ;;
+            mongo* )
+                command -v mongodump > /dev/null 2>&1 || missing="${missing} mongodump"
+            ;;
+            redis* )
+                command -v redis-cli > /dev/null 2>&1 || missing="${missing} redis-cli"
+            ;;
+            sqlite* )
+                command -v sqlite3 > /dev/null 2>&1 || missing="${missing} sqlite3"
+            ;;
+            mssql* )
+                command -v sqlcmd > /dev/null 2>&1 || missing="${missing} sqlcmd"
+            ;;
+            couch* )
+                command -v curl > /dev/null 2>&1 || missing="${missing} curl"
+            ;;
+            influx* )
+                command -v influx > /dev/null 2>&1 || missing="${missing} influx"
+            ;;
+        esac
+    done
+
+    if [ -n "${missing}" ] ; then
+        write_log error "Missing required runtime tools:${missing}"
+        write_log error "Refusing to start due to incompatible or incomplete runtime."
+        exit 1
+    fi
 }
 
 debug() {
@@ -1878,6 +1944,11 @@ setup_mode() {
     else
         write_log info "Running in Manual mode - Execute 'backup_now' to perform a manual backup"
         service_stop 10-db-backup
+        if var_true "${CONTAINER_ENABLE_MONITORING}" ; then
+            write_log warn "Manual mode detected - disabling CONTAINER_ENABLE_MONITORING for stability"
+            CONTAINER_ENABLE_MONITORING=FALSE
+            service_stop 03-monitoring
+        fi
         if var_true "${MANUAL_RUN_FOREVER}" ; then
             mkdir -p /etc/services.d/99-run_forever
             cat <<EOF > /etc/services.d/99-run_forever/run
@@ -1889,16 +1960,14 @@ EOF
             chmod +x /etc/services.d/99-run_forever/run
         else
             if var_true "${CONTAINER_ENABLE_SCHEDULING}" ; then
-                write_log error "Manual / Exit after execution mode doesn't work with 'CONTAINER_ENABLE_SCHEDULING=TRUE'"
-                exit 1
-            fi
-            if var_true "${CONTAINER_ENABLE_MONITORING}" ; then
-                write_log error "Manual / Exit after execution mode doesn't work with 'CONTAINER_ENABLE_MONITORING=TRUE'"
-                exit 1
+                write_log warn "Manual / Exit mode incompatible with CONTAINER_ENABLE_SCHEDULING=TRUE - disabling scheduling"
+                CONTAINER_ENABLE_SCHEDULING=FALSE
+                service_stop 04-scheduling
             fi
             if var_true "${CONTAINER_ENABLE_LOGSHIPPING}" ; then
-                write_log error "Manual / Exit after execution mode doesn't work with 'CONTAINER_ENABLE_LOGSHIPPING=TRUE'"
-                exit 1
+                write_log warn "Manual / Exit mode incompatible with CONTAINER_ENABLE_LOGSHIPPING=TRUE - disabling logshipping"
+                CONTAINER_ENABLE_LOGSHIPPING=FALSE
+                service_stop 05-logging
             fi
         fi
     fi

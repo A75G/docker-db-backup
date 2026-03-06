@@ -132,6 +132,16 @@ The following image tags are available along with their tagged release based on 
 | ----------- | --------- |
 | latest      | `:latest` |
 
+### Tested Versions
+
+The image is continuously smoke-tested in CI with the following database versions:
+
+- PostgreSQL `18`
+- MySQL `8`
+- Redis `7`
+
+The CI test matrix validates backup creation and restore smoke tests for PostgreSQL and MySQL.
+
 Use the same GHCR image format for all tags:
 
 ```bash
@@ -808,6 +818,7 @@ docker exec -it (whatever your container name is) bash
 Manual Backups can be performed by entering the container and typing `backup-now`. This will execute all the backup tasks that are scheduled by means of the `BACKUPXX_` variables. Alternatively if you wanted to execute a job on its own you could simply type `backup01-now` (or whatever your number would be). There is no concurrency, and jobs will be executed sequentially.
 
 - Recently there was a request to have the container work with Kubernetes cron scheduling. This can theoretically be accomplished by setting the container `MODE=MANUAL` and then setting `MANUAL_RUN_FOREVER=FALSE` - You would also want to disable a few features from the upstream base images specifically `CONTAINER_ENABLE_SCHEDULING` and `CONTAINER_ENABLE_MONITORING`. This should allow the container to start, execute a backup by executing and then exit cleanly. An alternative way to running the script is to execute `/etc/services.available/10-db-backup/run`.
+- For manual mode stability, prefer setting `CONTAINER_ENABLE_MONITORING=FALSE` and `CONTAINER_ENABLE_SCHEDULING=FALSE`.
 
 ### Restoring Databases
 
