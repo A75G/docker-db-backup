@@ -1016,12 +1016,35 @@ check_availability() {
             ;;
             "pgsql" )
                 counter=0
-                until run_as_user pg_isready --host=${backup_job_db_host} --port=${backup_job_db_port} -q
-                do
-                    sleep 5
-                    (( counter+=5 ))
-                    write_log warn "Postgres Host '${backup_job_db_host}' is not accessible, retrying.. ($counter seconds so far)"
-                done
+                if command -v pg_isready > /dev/null 2>&1 ; then
+                    until run_as_user pg_isready --host=${backup_job_db_host} --port=${backup_job_db_port} -q
+                    do
+                        sleep 5
+                        (( counter+=5 ))
+                        write_log warn "Postgres Host '${backup_job_db_host}' is not accessible, retrying.. ($counter seconds so far)"
+                    done
+                elif command -v psql > /dev/null 2>&1 ; then
+                    if [ -n "${backup_job_db_auth}" ] ; then
+                        authdb=${backup_job_db_auth}
+                    else
+                        authdb=${backup_job_db_user}
+                    fi
+                    export PGPASSWORD=${backup_job_db_pass}
+                    write_log warn "pg_isready not found, falling back to psql availability checks"
+                    until run_as_user psql -h "${backup_job_db_host}" -p "${backup_job_db_port}" -U "${backup_job_db_user}" -d "${authdb}" -c 'SELECT 1;' > /dev/null 2>&1
+                    do
+                        sleep 5
+                        (( counter+=5 ))
+                        write_log warn "Postgres Host '${backup_job_db_host}' is not accessible, retrying.. ($counter seconds so far)"
+                    done
+                else
+                    write_log warn "pg_isready and psql not found, falling back to TCP port check"
+                    while ! (run_as_user nc -z "${backup_job_db_host}" "${backup_job_db_port}") ; do
+                        sleep 5
+                        (( counter+=5 ))
+                        write_log warn "Postgres Host '${backup_job_db_host}' is not accessible, retrying.. ($counter seconds so far)"
+                    done
+                fi
             ;;
             "redis" )
                 counter=0
