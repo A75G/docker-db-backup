@@ -1,3 +1,10 @@
+## 4.1.22 2026-03-06 <a75g@github>
+
+   ### Changed
+      - Update PostgreSQL client tools from 17.x to 18.x for PostgreSQL 18 server compatibility
+      - Update repository and GHCR naming references for this fork
+
+
 ## 4.1.21 2025-08-08 <dave at tiredofit dot ca>
 
    ### Changed
@@ -89,7 +96,7 @@
       - Mysql 11.x Support
       - Influx2 Client 2.7.5
       - AWS Client 1.35.13
-      - Postgresql 17.x Support
+      - Postgresql 18.x Support
 
 
 ## 4.1.8 2024-10-29 <dave at tiredofit dot ca>

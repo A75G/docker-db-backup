@@ -13,8 +13,8 @@ ENV INFLUX1_CLIENT_VERSION=1.8.0 \
     AWS_CLI_VERSION=1.36.40 \
     CONTAINER_ENABLE_MESSAGING=TRUE \
     CONTAINER_ENABLE_MONITORING=TRUE \
-    IMAGE_NAME="tiredofit/db-backup" \
-    IMAGE_REPO_URL="https://github.com/tiredofit/docker-db-backup/"
+    IMAGE_NAME="a75g/docker-db-backup" \
+    IMAGE_REPO_URL="https://github.com/A75G/docker-db-backup/"
 
 RUN source /assets/functions/00-container && \
     set -ex && \

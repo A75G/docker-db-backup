@@ -1,9 +1,7 @@
-# github.com/tiredofit/docker-db-backup
+# github.com/A75G/docker-db-backup
 
-[![GitHub release](https://img.shields.io/github/v/tag/tiredofit/docker-db-backup?style=flat-square)](https://github.com/tiredofit/docker-db-backup/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/tiredofit/docker-db-backup/main.yml?branch=main&style=flat-square)](https://github.com/tiredofit/docker-db-backup/actions)
-[![Docker Stars](https://img.shields.io/docker/stars/tiredofit/db-backup.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/tiredofit/db-backup/)
-[![Docker Pulls](https://img.shields.io/docker/pulls/tiredofit/db-backup.svg?style=flat-square&logo=docker)](https://hub.docker.com/r/tiredofit/db-backup/)
+[![GitHub release](https://img.shields.io/github/v/tag/A75G/docker-db-backup?style=flat-square)](https://github.com/A75G/docker-db-backup/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/A75G/docker-db-backup/main.yml?branch=main&style=flat-square)](https://github.com/A75G/docker-db-backup/actions)
 [![Become a sponsor](https://img.shields.io/badge/sponsor-tiredofit-181717.svg?logo=github&style=flat-square)](https://www.tiredofit.ca/sponsor)
 [![Paypal Donate](https://img.shields.io/badge/donate-paypal-00457c.svg?logo=paypal&style=flat-square)](https://www.paypal.me/tiredofit)
 
@@ -122,12 +120,10 @@ Clone this repository and build the image with `docker build <arguments> (imagen
 
 ### Prebuilt Images
 
-Builds of the image are available on [Docker Hub](https://hub.docker.com/r/tiredofit/db-backup)
-
-Builds of the image are also available on the [Github Container Registry](https://github.com/tiredofit/docker-db-backup/pkgs/container/docker-db-backup)
+Builds of this fork are available on the [Github Container Registry](https://github.com/A75G/docker-db-backup/pkgs/container/docker-db-backup)
 
 ```bash
-docker pull ghcr.io/tiredofit/docker-db-backup:(imagetag)
+docker pull ghcr.io/a75g/docker-db-backup:(imagetag)
 ```
 
 The following image tags are available along with their tagged release based on what's written in the [Changelog](CHANGELOG.md):
@@ -136,8 +132,10 @@ The following image tags are available along with their tagged release based on 
 | ----------- | --------- |
 | latest      | `:latest` |
 
+Use the same GHCR image format for all tags:
+
 ```bash
-docker pull docker.io/tiredofit/db-backup:(imagetag)
+docker pull ghcr.io/a75g/docker-db-backup:latest
 ```
 
 #### Multi Architecture
