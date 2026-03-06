@@ -1,8 +1,36 @@
 ARG DISTRO=alpine
 ARG DISTRO_VARIANT=3.21-7.10.28
+ARG ENABLE_INFLUX1_CLIENT=false
+ARG ENABLE_MYSQL_SOURCE_CLIENT=false
+ARG ENABLE_BLOBXFER=false
 
-FROM docker.io/tiredofit/${DISTRO}:${DISTRO_VARIANT}
+FROM docker.io/tiredofit/${DISTRO}:${DISTRO_VARIANT} AS compat
+
+FROM alpine:3.21
 LABEL maintainer="Dave Conroy (github.com/tiredofit)"
+
+ARG ENABLE_INFLUX1_CLIENT
+ARG ENABLE_MYSQL_SOURCE_CLIENT
+ARG ENABLE_BLOBXFER
+
+RUN apk add --no-cache bash ca-certificates curl
+
+# Keep runtime compatibility while moving the final image to official Alpine.
+COPY --from=compat /init /init
+COPY --from=compat /assets /assets
+COPY --from=compat /command /command
+COPY --from=compat /package /package
+COPY --from=compat /etc/cont-init.d /etc/cont-init.d
+COPY --from=compat /etc/cont-finish.d /etc/cont-finish.d
+COPY --from=compat /etc/s6-overlay /etc/s6-overlay
+COPY --from=compat /etc/services /etc/services
+COPY --from=compat /etc/services.available /etc/services.available
+COPY --from=compat /etc/services.d /etc/services.d
+COPY --from=compat /usr/local/bin /usr/local/bin
+
+ENV PATH="/command:/package/admin/s6-overlay/command:/package/admin/s6-overlay/bin:/package/admin/s6-overlay/sbin:${PATH}"
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ENV INFLUX1_CLIENT_VERSION=1.8.0 \
     INFLUX2_CLIENT_VERSION=2.7.5 \
@@ -20,6 +48,7 @@ RUN source /assets/functions/00-container && \
     set -ex && \
     addgroup -S -g 10000 dbbackup && \
     adduser -S -D -H -u 10000 -G dbbackup -g "Tired of I.T! DB Backup" dbbackup && \
+    mkdir -p /usr/src /tmp/.container /backup /logs /tmp/backups && \
     \
     package update && \
     package upgrade && \
@@ -47,6 +76,7 @@ RUN source /assets/functions/00-container && \
                     coreutils \
                     gpg \
                     gpg-agent \
+                    grep \
                     groff \
                     libarchive \
                     libtirpc \
@@ -70,6 +100,7 @@ RUN source /assets/functions/00-container && \
                     python3 \
                     redis \
                     sqlite \
+                    sudo \
                     xz \
                     zip \
                     zstd \
@@ -98,21 +129,33 @@ RUN source /assets/functions/00-container && \
         echo >&2 "Unable to build Influx 2 on this system" ; \
     fi ; \
     \
-    clone_git_repo https://github.com/influxdata/influxdb "${INFLUX1_CLIENT_VERSION}" && \
-    go build -o /usr/sbin/influxd ./cmd/influxd && \
-    strip /usr/sbin/influxd && \
+    if [ "${ENABLE_INFLUX1_CLIENT,,}" = "true" ] ; then \
+        clone_git_repo https://github.com/influxdata/influxdb "${INFLUX1_CLIENT_VERSION}" && \
+        go build -o /usr/sbin/influxd ./cmd/influxd && \
+        strip /usr/sbin/influxd ; \
+    else \
+        echo "Skipping optional InfluxDB v1 client build" ; \
+    fi && \
     \
-    clone_git_repo "${MYSQL_REPO_URL}" "${MYSQL_VERSION}" && \
-    cmake \
-        -DCMAKE_BUILD_TYPE=MinSizeRel \
-        -DCMAKE_INSTALL_PREFIX=/opt/mysql \
-        -DFORCE_INSOURCE_BUILD=1 \
-        -DWITHOUT_SERVER:BOOL=ON \
-        && \
-    make -j$(nproc) install && \
+    if [ "${ENABLE_MYSQL_SOURCE_CLIENT,,}" = "true" ] ; then \
+        clone_git_repo "${MYSQL_REPO_URL}" "${MYSQL_VERSION}" && \
+        cmake \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DCMAKE_INSTALL_PREFIX=/opt/mysql \
+            -DFORCE_INSOURCE_BUILD=1 \
+            -DWITHOUT_SERVER:BOOL=ON \
+            && \
+        make -j$(nproc) install ; \
+    else \
+        echo "Skipping optional MySQL source client build (using mariadb-client)" ; \
+    fi && \
     \
     pip3 install --break-system-packages awscli==${AWS_CLI_VERSION} && \
-    pip3 install --break-system-packages blobxfer && \
+    if [ "${ENABLE_BLOBXFER,,}" = "true" ] ; then \
+        pip3 install --break-system-packages blobxfer ; \
+    else \
+        echo "Skipping optional blobxfer installation" ; \
+    fi && \
     \
     mkdir -p /usr/src/pbzip2 && \
     curl -sSL https://launchpad.net/pbzip2/1.1/1.1.13/+download/pbzip2-1.1.13.tar.gz | tar xvfz - --strip=1 -C /usr/src/pbzip2 && \
@@ -145,3 +188,5 @@ RUN find /assets /etc/cont-init.d /usr/local/bin -type f -exec sed -i 's/\r$//' 
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD sh -ec 'for b in bash pg_dump psql mysqldump mongodump redis-cli sqlite3; do command -v "$b" >/dev/null || exit 1; done'
+
+ENTRYPOINT ["/init"]

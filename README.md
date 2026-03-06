@@ -118,6 +118,12 @@ Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, Postgres, Red
 
 Clone this repository and build the image with `docker build <arguments> (imagename) .`
 
+Optional build arguments (to reduce image size and attack surface):
+
+- `--build-arg ENABLE_INFLUX1_CLIENT=false` (default)
+- `--build-arg ENABLE_MYSQL_SOURCE_CLIENT=false` (default, uses `mariadb-client`)
+- `--build-arg ENABLE_BLOBXFER=false` (default)
+
 ### Prebuilt Images
 
 Builds of this fork are available on the [Github Container Registry](https://github.com/A75G/docker-db-backup/pkgs/container/docker-db-backup)
@@ -175,7 +181,7 @@ The following directories are used for configuration and can be mapped for persi
 
 #### Base Images used
 
-This image relies on an [Alpine Linux](https://hub.docker.com/r/tiredofit/alpine) base image that relies on an [init system](https://github.com/just-containers/s6-overlay) for added capabilities. Outgoing SMTP capabilities are handled via `msmtp`. Individual container performance monitoring is performed by [zabbix-agent](https://zabbix.org). Additional tools include: `bash`,`curl`,`less`,`logrotate`, `nano`.
+This fork now uses an official [Alpine Linux](https://hub.docker.com/_/alpine) runtime base image and preserves the existing init/runtime compatibility layer used by the project scripts. Outgoing SMTP capabilities are handled via `msmtp`. Individual container performance monitoring is performed by [zabbix-agent](https://zabbix.org). Additional tools include: `bash`,`curl`,`less`,`logrotate`, `nano`.
 
 Be sure to view the following repositories to understand all the customizable options:
 
