@@ -1457,10 +1457,6 @@ file_encryption() {
 
                 encrypt_routines_finish_time=$(date +'%s')
                 encrypt_routines_total_time=$(echo $((encrypt_routines_finish_time-encrypt_routines_start_time)))
-                zabbix_encrypt_time=$(cat <<EOF
-- dbbackup.backup.encrypt.duration.[${backup_job_db_host}.${backup_job_db_name}] ${encrypt_routines_total_time}
-EOF
-                )
             else
                 print_error "Encryption failed! Could not detect encrypted file"
                 return 99
@@ -1497,11 +1493,6 @@ generate_checksum() {
         checksum_value=$(run_as_user cat "${backup_job_filename}"."${checksum_extension}" | awk '{print $1}')
         checksum_routines_finish_time=$(date +'%s')
         checksum_routines_total_time=$(echo $((checksum_routines_finish_time-checksum_routines_start_time)))
-        zabbix_checksum_time=$(cat <<EOF
-- dbbackup.backup.checksum.duration.[${backup_job_db_host}.${backup_job_db_name}] ${checksum_routines_total_time}
-- dbbackup.backup.checksum.hash.[${backup_job_db_host}.${backup_job_db_name}] ${checksum_value}
-EOF
-        )
         write_log debug "${checksum_extension^^}: ${checksum_value} - ${backup_job_filename}"
         write_log debug "Checksum routines time taken: $(echo ${checksum_routines_total_time} | awk '{printf "Hours: %d Minutes: %02d Seconds: %02d", $1/3600, ($1/60)%60, $1%60}')"
     else
@@ -1843,31 +1834,6 @@ post_dbbackup() {
     dbbackup_finish_time=$(run_as_user date +"%s")
     dbbackup_total_time=$(run_as_user echo $((dbbackup_finish_time-dbbackup_start_time)))
 
-    if var_true "${CONTAINER_ENABLE_MONITORING}" && [ "${CONTAINER_MONITORING_BACKEND,,}" = "zabbix" ]; then
-        source /assets/defaults/03-monitoring
-        write_log notice "Sending Backup Statistics to Zabbix"
-        silent run_as_user zabbix_sender -c "${ZABBIX_CONFIG_PATH}"/"${ZABBIX_CONFIG_FILE}" -k dbbackup.backup -o '[{"{#NAME}":"'${backup_job_db_host}.${backup_job_db_name}'"}]'
-        local zabbix_payload=$(run_as_user mktemp)
-
-        cat <<EOZP | silent run_as_user tee "${zabbix_payload}"
-- dbbackup.backup.size.[${backup_job_db_host}.${backup_job_db_name}] "${dbbackup_size}"
-- dbbackup.backup.datetime.[${backup_job_db_host}.${backup_job_db_name}] "${dbbackup_date}"
-- dbbackup.backup.status.[${backup_job_db_host}.${backup_job_db_name}] "${exit_code}"
-- dbbackup.backup.duration.[${backup_job_db_host}.${backup_job_db_name}] "$((dbbackup_finish_time-dbbackup_start_time))"
-- dbbackup.backup.filename.[${backup_job_db_host}.${backup_job_db_name}] "${backup_job_filename}"
-EOZP
-
-        if [ -n "${zabbix_checksum_time}" ] ; then echo "${zabbix_checksum_time}" | silent run_as_user tee -a "${zabbix_payload}" ; fi
-        if [ -n "${zabbix_encrypt_time}" ] ; then echo "${zabbix_encrypt_time}" | silent run_as_user tee -a "${zabbix_payload}"  ; fi
-
-        silent run_as_user zabbix_sender -c "${ZABBIX_CONFIG_PATH}"/"${ZABBIX_CONFIG_FILE}" -i "${zabbix_payload}"
-
-        if [ "$?" != "0" ] ; then write_log error "Error sending statistics, consider disabling with 'CONTAINER_ENABLE_MONITORING=FALSE'" ; fi
-        unset zabbix_checksum_time
-        unset zabbix_encrypt_time
-        rm -rf "${zabbix_payload}"
-    fi
-
     ### Post Script Support
     if [ -n "${backup_job_post_script}" ] ; then
         if var_true "${backup_job_post_script_x_verify}" ; then
@@ -1944,11 +1910,6 @@ setup_mode() {
     else
         write_log info "Running in Manual mode - Execute 'backup_now' to perform a manual backup"
         service_stop 10-db-backup
-        if var_true "${CONTAINER_ENABLE_MONITORING}" ; then
-            write_log warn "Manual mode detected - disabling CONTAINER_ENABLE_MONITORING for stability"
-            CONTAINER_ENABLE_MONITORING=FALSE
-            service_stop 03-monitoring
-        fi
         if var_true "${MANUAL_RUN_FOREVER}" ; then
             mkdir -p /etc/services.d/99-run_forever
             cat <<EOF > /etc/services.d/99-run_forever/run

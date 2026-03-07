@@ -26,7 +26,6 @@ Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, Postgres, Red
 - compression support (none, gz, bz, xz, zstd)
 - encryption support (passphrase and public key)
 - notify upon job failure to email, matrix, mattermost, rocketchat, custom script
-- zabbix metrics support
 - hooks to execute pre and post backup job for customization purposes
 - companion script to aid in restores
 
@@ -181,7 +180,7 @@ The following directories are used for configuration and can be mapped for persi
 
 #### Base Images used
 
-This fork now uses an official [Alpine Linux](https://hub.docker.com/_/alpine) runtime base image and preserves the existing init/runtime compatibility layer used by the project scripts. Outgoing SMTP capabilities are handled via `msmtp`. Individual container performance monitoring is performed by [zabbix-agent](https://zabbix.org). Additional tools include: `bash`,`curl`,`less`,`logrotate`, `nano`.
+This fork now uses an official [Alpine Linux](https://hub.docker.com/_/alpine) runtime base image and preserves the existing init/runtime compatibility layer used by the project scripts. Outgoing SMTP capabilities are handled via `msmtp`. Additional tools include: `bash`,`curl`,`less`,`logrotate`, `nano`.
 
 Be sure to view the following repositories to understand all the customizable options:
 
@@ -823,8 +822,7 @@ docker exec -it (whatever your container name is) bash
 
 Manual Backups can be performed by entering the container and typing `backup-now`. This will execute all the backup tasks that are scheduled by means of the `BACKUPXX_` variables. Alternatively if you wanted to execute a job on its own you could simply type `backup01-now` (or whatever your number would be). There is no concurrency, and jobs will be executed sequentially.
 
-- Recently there was a request to have the container work with Kubernetes cron scheduling. This can theoretically be accomplished by setting the container `MODE=MANUAL` and then setting `MANUAL_RUN_FOREVER=FALSE` - You would also want to disable a few features from the upstream base images specifically `CONTAINER_ENABLE_SCHEDULING` and `CONTAINER_ENABLE_MONITORING`. This should allow the container to start, execute a backup by executing and then exit cleanly. An alternative way to running the script is to execute `/etc/services.available/10-db-backup/run`.
-- For manual mode stability, prefer setting `CONTAINER_ENABLE_MONITORING=FALSE` and `CONTAINER_ENABLE_SCHEDULING=FALSE`.
+- Recently there was a request to have the container work with Kubernetes cron scheduling. This can theoretically be accomplished by setting the container `MODE=MANUAL` and then setting `MANUAL_RUN_FOREVER=FALSE` while disabling scheduler features from the upstream base image (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This should allow the container to start, execute a backup by executing and then exit cleanly. An alternative way to running the script is to execute `/etc/services.available/10-db-backup/run`.
 
 ### Restoring Databases
 

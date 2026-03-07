@@ -40,7 +40,7 @@ ENV INFLUX1_CLIENT_VERSION=1.8.0 \
     MYSQL_REPO_URL=https://github.com/mysql/mysql-server \
     AWS_CLI_VERSION=1.36.40 \
     CONTAINER_ENABLE_MESSAGING=TRUE \
-    CONTAINER_ENABLE_MONITORING=TRUE \
+    CONTAINER_ENABLE_MONITORING=FALSE \
     IMAGE_NAME="a75g/docker-db-backup" \
     IMAGE_REPO_URL="https://github.com/A75G/docker-db-backup/"
 
@@ -114,7 +114,7 @@ RUN source /assets/functions/00-container && \
     \
     case "$(uname -m)" in \
 	    "x86_64" ) mssql=true ; mssql_arch=amd64; influx2=true ; influx_arch=amd64; ;; \
-        "arm64" | "aarch64" ) mssql=true ; mssql_arch=arm64; influx2=true ; influx_arch=arm64 ;; \
+        "arm64" | "aarch64" ) mssql=false ; influx2=true ; influx_arch=arm64 ;; \
         *) sleep 0.1 ;; \
     esac; \
     \
