@@ -13,6 +13,9 @@ This builds a container for backing up multiple database server types.
 
 Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, PostgreSQL, and Redis servers.
 
+> Fork notice: This project is forked from the original work by [Dave Conroy](https://github.com/tiredofit).  
+> All credit and thanks go to him. This fork is maintained primarily for personal-use maintenance.
+
 - Dump to local filesystem or back up to S3-compatible services and Azure.
 - Multiple backup job support
   - selectable when to start the first dump, whether time of day or relative to container start time
