@@ -6,7 +6,7 @@ ARG ENABLE_BLOBXFER=false
 
 FROM docker.io/tiredofit/${DISTRO}:${DISTRO_VARIANT} AS compat
 
-FROM alpine:3.21
+FROM alpine:3.23.3
 LABEL maintainer="Dave Conroy (github.com/tiredofit)"
 
 ARG ENABLE_INFLUX1_CLIENT
@@ -53,6 +53,7 @@ RUN source /assets/functions/00-container && \
     package update && \
     package upgrade && \
     echo '@edge_main https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
+    echo '@edge_community https://dl-cdn.alpinelinux.org/alpine/edge/community' >> /etc/apk/repositories && \
     package update && \
     package install .db-backup-build-deps \
                     build-base \
@@ -82,7 +83,6 @@ RUN source /assets/functions/00-container && \
                     libtirpc \
                     mariadb-client \
                     mariadb-connector-c \
-                    mongodb-tools \
                     ncurses \
                     openssl \
                     pigz \
@@ -98,13 +98,18 @@ RUN source /assets/functions/00-container && \
                     py3-s3transfer \
                     py3-yaml \
                     python3 \
-                    redis \
                     sqlite \
                     sudo \
                     xz \
                     zip \
                     zstd \
                     && \
+    apk add --no-cache --upgrade \
+            --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+            libcrypto3 libssl3 openssl pcre2 zlib && \
+    apk add --no-cache --upgrade \
+            --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community \
+            mongodb-tools redis && \
     apk add --no-cache postgresql18-client --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main && \
     \
     case "$(uname -m)" in \
