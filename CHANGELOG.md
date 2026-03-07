@@ -1,3 +1,15 @@
+## 4.1.23 2026-03-07 <a75g@github>
+
+   ### Changed
+      - Migrate final runtime base image to official Alpine while preserving compatibility with existing S6/runtime scripts
+      - Add runtime compatibility fixes required on official Alpine (`sudo`, GNU `grep`, and S6 command paths in `PATH`)
+      - Add optional build arguments to reduce image size/attack surface by default:
+        - `ENABLE_INFLUX1_CLIENT=false`
+        - `ENABLE_MYSQL_SOURCE_CLIENT=false`
+        - `ENABLE_BLOBXFER=false`
+      - Update README build/base-image documentation for the migration
+
+
 ## 4.1.22 2026-03-06 <a75g@github>
 
    ### Changed
