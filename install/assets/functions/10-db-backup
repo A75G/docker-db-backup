@@ -918,8 +918,12 @@ backup_redis() {
 
 backup_sqlite3() {
     prepare_dbbackup
-    db=$(basename "${backup_job_db_host}")
-    db="${db%.*}"
+    if [ -n "${backup_job_db_name}" ] && [ "${backup_job_db_name,,}" != "all" ]; then
+        db="${backup_job_db_name}"
+    else
+        db=$(basename "${backup_job_db_host}")
+        db="${db%.*}"
+    fi
     backup_job_filename=sqlite3_${db}_${now}.sqlite3
     backup_job_filename_base=sqlite3_${db}
     pre_dbbackup "${db}"

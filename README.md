@@ -125,6 +125,11 @@ Optional build arguments (to reduce image size and attack surface):
 - `--build-arg ENABLE_INFLUX1_CLIENT=false` (default)
 - `--build-arg ENABLE_MYSQL_SOURCE_CLIENT=false` (default, uses `mariadb-client`)
 - `--build-arg ENABLE_BLOBXFER=false` (default)
+- `--build-arg ENABLE_MSSQL_CLIENT=false` (default; enable only if MSSQL backups/restores are needed)
+
+Dependency policy notes:
+- `awscli` is pinned in the image build for deterministic S3/MinIO behavior across environments.
+- Optional clients are controlled with build args to reduce attack surface and CVE churn when unused.
 
 ### Prebuilt Images
 
@@ -826,6 +831,15 @@ docker exec -it <container_name> bash
 Manual backups can be performed by entering the container and typing `backup-now`. This will execute all configured backup jobs. If you want to run a specific job, use `backup01-now` (or whatever job number you configured).
 
 - Recently there was a request to run the container with Kubernetes cron scheduling. This can be done by setting `MODE=MANUAL` and `MANUAL_RUN_FOREVER=FALSE` while disabling scheduler features from the upstream base image (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This allows the container to start, execute backups, and then exit cleanly. An alternative way to run the script is `/etc/services.available/10-db-backup/run`.
+
+### Local Smoke Test
+
+Run the same end-to-end smoke suite used by CI:
+
+```bash
+chmod +x scripts/smoke-test.sh
+IMAGE=a75g/docker-db-backup:ci scripts/smoke-test.sh
+```
 
 ### Restoring Databases
 
