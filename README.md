@@ -13,8 +13,8 @@ This builds a container for backing up multiple database server types.
 
 Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, PostgreSQL, and Redis servers.
 
-- dump to local filesystem or backup to S3 Compatible services, and Azure.
-- multiple backup job support
+- Dump to local filesystem or back up to S3-compatible services and Azure.
+- Multiple backup job support
   - selectable when to start the first dump, whether time of day or relative to container start time
   - selectable interval
   - selectable omit scheduling during periods of time
@@ -125,7 +125,7 @@ Optional build arguments (to reduce image size and attack surface):
 
 ### Prebuilt Images
 
-Builds of this fork are available on the [Github Container Registry](https://github.com/A75G/docker-db-backup/pkgs/container/docker-db-backup)
+Builds of this fork are available on the [GitHub Container Registry](https://github.com/A75G/docker-db-backup/pkgs/container/docker-db-backup)
 
 ```bash
 docker pull ghcr.io/a75g/docker-db-backup:(imagetag)
@@ -164,7 +164,7 @@ Images are built primarily for `amd64` architecture, and may also include builds
 - The quickest way to get started is using [docker-compose](https://docs.docker.com/compose/). See the examples folder for a series of example compose.yml that can be modified for development or production use.
 
 - Set various [environment variables](#environment-variables) to understand the capabilities of this image.
-- Map [persistent storage](#data-volumes) for access to configuration and data files for backup.
+- Map [persistent storage](#persistent-storage) for access to configuration and data files for backup.
 
 ### Persistent Storage
 
@@ -744,7 +744,7 @@ This image has capabilities on sending notifications via a handful of services w
 | Parameter              | Description                                                                       | Default |
 | ---------------------- | --------------------------------------------------------------------------------- | ------- |
 | `ENABLE_NOTIFICATIONS` | Enable Notifications                                                              | `FALSE` |
-| `NOTIFICATION_TYPE`    | `CUSTOM` `EMAIL` `MATRIX` `MATTERMOST` `ROCKETCHAT` - Seperate Multiple by commas |         |
+| `NOTIFICATION_TYPE`    | `CUSTOM` `EMAIL` `MATRIX` `MATTERMOST` `ROCKETCHAT` - Separate multiple values with commas |         |
 
 ##### Custom Notifications
 
@@ -812,7 +812,7 @@ Copy the JSON response `access_token` that will look something like this:
 
 ### Shell Access
 
-For debugging and maintenance purposes you may want access the containers shell.
+For debugging and maintenance purposes, you may want access to the container shell.
 
 ```bash
 docker exec -it <container_name> bash
@@ -822,11 +822,11 @@ docker exec -it <container_name> bash
 
 Manual backups can be performed by entering the container and typing `backup-now`. This will execute all configured backup jobs. If you want to run a specific job, use `backup01-now` (or whatever job number you configured).
 
-- Recently there was a request to have the container work with Kubernetes cron scheduling. This can theoretically be accomplished by setting the container `MODE=MANUAL` and then setting `MANUAL_RUN_FOREVER=FALSE` while disabling scheduler features from the upstream base image (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This should allow the container to start, execute a backup by executing and then exit cleanly. An alternative way to running the script is to execute `/etc/services.available/10-db-backup/run`.
+- Recently there was a request to run the container with Kubernetes cron scheduling. This can be done by setting `MODE=MANUAL` and `MANUAL_RUN_FOREVER=FALSE` while disabling scheduler features from the upstream base image (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This allows the container to start, execute backups, and then exit cleanly. An alternative way to run the script is `/etc/services.available/10-db-backup/run`.
 
 ### Restoring Databases
 
-Entering in the container and executing `restore` will execute a menu based script to restore your backups - MariaDB, Postgres, and Mongo supported.
+Entering the container and executing `restore` runs a menu-based script to restore backups. MariaDB, PostgreSQL, and MongoDB are supported.
 
 You will be presented with a series of menus allowing you to choose:
 
@@ -838,8 +838,8 @@ You will be presented with a series of menus allowing you to choose:
 - What Database Password to use
 - What Database Port to use
 
-The image will try to do auto detection based on the filename for the type, hostname, and database name.
-The image will also allow you to use environment variables or Docker secrets used to backup the images
+The image will try to auto-detect the backup type, hostname, and database name from the filename.
+The image also allows using environment variables or Docker secrets that were used during backup operations.
 
 The script can also be executed while skipping interactive mode by using the following syntax:
 
