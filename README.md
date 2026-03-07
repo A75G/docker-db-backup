@@ -9,9 +9,9 @@
 
 ## About
 
-This will build a container for backing up multiple types of DB Servers
+This builds a container for backing up multiple database server types.
 
-Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, Postgres, Redis servers.
+Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, PostgreSQL, and Redis servers.
 
 - dump to local filesystem or backup to S3 Compatible services, and Azure.
 - multiple backup job support
@@ -193,10 +193,10 @@ Be sure to view the following repositories to understand all the customizable op
 | Parameter                | Description                                                                                                                      | Default         |
 | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | `MODE`                   | `AUTO` mode to use internal scheduling routines or `MANUAL` to simply use this as manual backups only executed by your own means | `AUTO`          |
-| `USER_DBBACKUP`          | The uid that the image should read and write files as (username is `dbbackup`)                                                   | `10000`         |
-| `GROUP_DBBACKUP`         | The gid that the image should read and write files as (groupname is `dbbackup`)                                                  | `10000`         |
+| `DBBACKUP_USER`          | The uid that the image should read and write files as (username is `dbbackup`)                                                   | `10000`         |
+| `DBBACKUP_GROUP`         | The gid that the image should read and write files as (groupname is `dbbackup`)                                                  | `10000`         |
 | `LOG_PATH`               | Path to log files                                                                                                                | `/logs`         |
-| `TEMP_PATH`              | Perform Backups and Compression in this temporary directory                                                                      | `/tmp/backups/` |
+| `TEMP_PATH`              | Perform Backups and Compression in this temporary directory                                                                      | `/tmp/backups`  |
 | `MANUAL_RUN_FOREVER`     | `TRUE` or `FALSE` if you wish to try to make the container exit after the backup                                                 | `TRUE`          |
 | `DEBUG_MODE`             | If set to `true`, print copious shell script messages to the container log. Otherwise only basic messages are printed.           | `FALSE`         |
 | `BACKUP_JOB_CONCURRENCY` | How many backup jobs to run concurrently                                                                                         | `1`             |
@@ -335,7 +335,7 @@ Options that are related to the value of `DEFAULT_BACKUP_LOCATION`
 
 ###### Filesystem
 
-If `DEFAULT_BACKUP_LOCTION` = `FILESYSTEM` then the following options are used:
+If `DEFAULT_BACKUP_LOCATION` = `FILESYSTEM` then the following options are used:
 
 | Variable                             | Description                                                                                           | Default                               |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------- | ------------------------------------- |
@@ -618,7 +618,7 @@ Options that are related to the value of `DB01_BACKUP_LOCATION`
 
 ###### Filesystem
 
-If `DB01_BACKUP_LOCTION` = `FILESYSTEM` then the following options are used:
+If `DB01_BACKUP_LOCATION` = `FILESYSTEM` then the following options are used:
 
 | Variable                          | Description                                                                                           | Default                            |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------- |
@@ -770,7 +770,7 @@ See more details in the base image listed above for more mail environment variab
 | Parameter   | Description                                                                               | Default | `_FILE` |
 | ----------- | ----------------------------------------------------------------------------------------- | ------- | ------- |
 | `MAIL_FROM` | What email address to send mail from for errors                                           |         |         |
-| `MAIL_TO`   | What email address to send mail to for errors. Send to multiple by seperating with comma. |         |         |
+| `MAIL_TO`   | What email address to send mail to for errors. Send to multiple by separating with comma. |         |         |
 | `SMTP_HOST` | What SMTP server to use for sending mail                                                  |         | x       |
 | `SMTP_PORT` | What SMTP port to use for sending mail                                                    |         | x       |
 
@@ -791,21 +791,21 @@ Copy the JSON response `access_token` that will look something like this:
 | Parameter             | Description                                                                              | Default | `_FILE` |
 | --------------------- | ---------------------------------------------------------------------------------------- | ------- | ------- |
 | `MATRIX_HOST`         | URL (https://matrix.example.com) of Matrix Homeserver                                    |         | x       |
-| `MATRIX_ROOM`         | Room ID eg `\!abcdef:example.com` to send to. Send to multiple by seperating with comma. |         | x       |
+| `MATRIX_ROOM`         | Room ID eg `\!abcdef:example.com` to send to. Send to multiple by separating with comma. |         | x       |
 | `MATRIX_ACCESS_TOKEN` | Access token of user authorized to send to room                                          |         | x       |
 
 ##### Mattermost Notifications
 | Parameter                | Description                                                                                  | Default | `_FILE` |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------- | ------- |
 | `MATTERMOST_WEBHOOK_URL` | Full URL to send webhook notifications to                                                    |         | x       |
-| `MATTERMOST_RECIPIENT`   | Channel or User to send Webhook notifications to. Send to multiple by seperating with comma. |         | x       |
+| `MATTERMOST_RECIPIENT`   | Channel or User to send Webhook notifications to. Send to multiple by separating with comma. |         | x       |
 | `MATTERMOST_USERNAME`    | Username to send as eg `tiredofit`                                                           |         | x       |
 
 ##### Rocketchat Notifications
 | Parameter                | Description                                                                                  | Default | `_FILE` |
 | ------------------------ | -------------------------------------------------------------------------------------------- | ------- | ------- |
 | `ROCKETCHAT_WEBHOOK_URL` | Full URL to send webhook notifications to                                                    |         | x       |
-| `ROCKETCHAT_RECIPIENT`   | Channel or User to send Webhook notifications to. Send to multiple by seperating with comma. |         | x       |
+| `ROCKETCHAT_RECIPIENT`   | Channel or User to send Webhook notifications to. Send to multiple by separating with comma. |         | x       |
 | `ROCKETCHAT_USERNAME`    | Username to send as eg `tiredofit`                                                           |         | x       |
 
 ## Maintenance
@@ -814,13 +814,13 @@ Copy the JSON response `access_token` that will look something like this:
 
 For debugging and maintenance purposes you may want access the containers shell.
 
-`bash
-docker exec -it (whatever your container name is) bash
-`
+```bash
+docker exec -it <container_name> bash
+```
 
 ### Manual Backups
 
-Manual Backups can be performed by entering the container and typing `backup-now`. This will execute all the backup tasks that are scheduled by means of the `BACKUPXX_` variables. Alternatively if you wanted to execute a job on its own you could simply type `backup01-now` (or whatever your number would be). There is no concurrency, and jobs will be executed sequentially.
+Manual backups can be performed by entering the container and typing `backup-now`. This will execute all configured backup jobs. If you want to run a specific job, use `backup01-now` (or whatever job number you configured).
 
 - Recently there was a request to have the container work with Kubernetes cron scheduling. This can theoretically be accomplished by setting the container `MODE=MANUAL` and then setting `MANUAL_RUN_FOREVER=FALSE` while disabling scheduler features from the upstream base image (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This should allow the container to start, execute a backup by executing and then exit cleanly. An alternative way to running the script is to execute `/etc/services.available/10-db-backup/run`.
 
@@ -841,7 +841,7 @@ You will be presented with a series of menus allowing you to choose:
 The image will try to do auto detection based on the filename for the type, hostname, and database name.
 The image will also allow you to use environment variables or Docker secrets used to backup the images
 
-The script can also be executed skipping the interactive mode by using the following syntax/
+The script can also be executed while skipping interactive mode by using the following syntax:
 
     `restore <filename> <db_type> <db_hostname> <db_name> <db_user> <db_pass> <db_port>`
 
