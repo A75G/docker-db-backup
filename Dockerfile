@@ -100,6 +100,7 @@ RUN source /assets/functions/00-container && \
                     python3 \
                     sqlite \
                     sudo \
+                    tzdata \
                     xz \
                     zip \
                     zstd \
