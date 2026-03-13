@@ -1276,7 +1276,7 @@ create_schedulers() {
             if [ "${MODE,,}" = "manual" ] ; then service_stop dbbackup-"${instance}" ; fi
             cat <<EOF > /usr/bin/backup"${instance}"-now
 #!/bin/bash
-source /assets/functions/00-container
+source /assets/functions/01-dbbackup-compat
 PROCESS_NAME=db-backup${instance}
 print_info "Starting Manual Backup for db-backup${instance}"
 #/var/run/s6/legacy-services/dbbackup-${instance}/run now

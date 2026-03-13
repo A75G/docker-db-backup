@@ -17,6 +17,8 @@ ARG ENABLE_MSSQL_CLIENT
 
 RUN apk add --no-cache bash ca-certificates curl
 
+COPY install/assets/functions/01-dbbackup-build /usr/local/share/dbbackup/01-dbbackup-build
+
 # Keep runtime compatibility while moving the final image to official Alpine.
 COPY --from=compat /init /init
 COPY --from=compat /assets /assets
@@ -46,7 +48,7 @@ ENV INFLUX1_CLIENT_VERSION=1.8.0 \
     IMAGE_NAME="a75g/docker-db-backup" \
     IMAGE_REPO_URL="https://github.com/A75G/docker-db-backup/"
 
-RUN source /assets/functions/00-container && \
+RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
     set -ex && \
     addgroup -S -g 10000 dbbackup && \
     adduser -S -D -H -u 10000 -G dbbackup -g "Tired of I.T! DB Backup" dbbackup && \
@@ -113,7 +115,7 @@ RUN source /assets/functions/00-container && \
             mongodb-tools redis && \
     apk add --no-cache postgresql18-client --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main
 
-RUN source /assets/functions/00-container && \
+RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
     set -ex && \
     case "$(uname -m)" in \
         "x86_64" ) mssql_arch=amd64; influx2=true ; influx_arch=amd64; ;; \
@@ -154,7 +156,7 @@ RUN source /assets/functions/00-container && \
         echo "Skipping optional MySQL source client build (using mariadb-client)" ; \
     fi
 
-RUN source /assets/functions/00-container && \
+RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
     set -ex && \
     # Keep awscli pinned for deterministic S3 CLI behavior across architectures.
     pip3 install --break-system-packages awscli==${AWS_CLI_VERSION} && \

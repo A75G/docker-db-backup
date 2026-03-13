@@ -1,0 +1,127 @@
+#!/command/with-contenv bash
+
+# Repo-owned compatibility shim. This keeps current runtime behavior stable
+# while gradually replacing the inherited tiredofit helper surface.
+
+if [ -z "${DBBACKUP_COMPAT_HELPERS_LOADED}" ] ; then
+    export DBBACKUP_COMPAT_HELPERS_LOADED=TRUE
+
+    if [ -f /assets/functions/00-container ] ; then
+        # shellcheck disable=SC1091
+        source /assets/functions/00-container
+    fi
+fi
+
+output_off() {
+    if [ "${DEBUG_MODE,,}" = "true" ] ; then
+        set +x
+    fi
+}
+
+output_on() {
+    if [ "${DEBUG_MODE,,}" = "true" ] ; then
+        case "$(basename "$0")" in
+            0*-* | 99-* )
+                :
+            ;;
+            run )
+                case "$PWD" in
+                    */0*-* | 99-* )
+                        :
+                    ;;
+                    * )
+                        set -x
+                    ;;
+                esac
+            ;;
+            * )
+                set -x
+            ;;
+        esac
+    fi
+}
+
+debug() {
+    case "${1,,}" in
+        "on" | "true" )
+            set -x
+        ;;
+        "off" | "false" )
+            set +x
+        ;;
+    esac
+}
+
+silent() {
+    if [ "${DEBUG_MODE,,}" = "true" ] || [ "${SHOW_OUTPUT,,}" = "true" ] || [ "${CONTAINER_LOG_LEVEL,,}" = "debug" ] ; then
+        "$@"
+    else
+        "$@" > /dev/null 2>&1
+    fi
+}
+
+transform_file_var() {
+    local variables
+    local variable
+    local file_variable
+
+    variables=$(echo "$*" | tr " " "\n")
+    for variable in ${variables}; do
+        if [ -v "${variable}_FILE" ] ; then
+            file_variable=${variable}_FILE
+            if [ ! -f "${!file_variable}" ] ; then
+                print_error "[transform_file_var] ${variable}_FILE set as environment variable, however file doesn't exist"
+                return 1
+            fi
+            export "${variable}"="$(cat "${!file_variable}")"
+        fi
+    done
+}
+
+var_false() {
+    [ "${1,,}" = "false" ] || [ "${1,,}" = "no" ]
+}
+
+var_true() {
+    [ "${1,,}" = "true" ] || [ "${1,,}" = "yes" ]
+}
+
+dbbackup_print() {
+    local level="$1"
+    shift
+    local message="$*"
+    local prefix
+
+    prefix="$(date +"%Y-%m-%d.%H:%M:%S ")"
+    output_off
+    echo -e "${prefix}[${level}] ** [${PROCESS_NAME}] ${message}"
+    output_on
+}
+
+print_debug() {
+    case "${CONTAINER_LOG_LEVEL,,}" in
+        "debug" ) dbbackup_print "DEBUG" "$*" ;;
+    esac
+}
+
+print_error() {
+    case "${CONTAINER_LOG_LEVEL,,}" in
+        "debug" | "notice" | "warn" | "error" ) dbbackup_print "ERROR" "$*" ;;
+    esac
+}
+
+print_info() {
+    dbbackup_print "INFO" "$*"
+}
+
+print_notice() {
+    case "${CONTAINER_LOG_LEVEL,,}" in
+        "debug" | "notice" ) dbbackup_print "NOTICE" "$*" ;;
+    esac
+}
+
+print_warn() {
+    case "${CONTAINER_LOG_LEVEL,,}" in
+        "debug" | "notice" | "warn" ) dbbackup_print "WARN" "$*" ;;
+    esac
+}

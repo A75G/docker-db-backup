@@ -103,6 +103,7 @@ Backs up CouchDB, InfluxDB, MySQL/MariaDB, Microsoft SQL, MongoDB, PostgreSQL, a
   - [Shell Access](#shell-access)
   - [Manual Backups](#manual-backups)
   - [Restoring Databases](#restoring-databases)
+  - [Development](#development)
 - [Support](#support)
   - [Usage](#usage)
   - [Bugfixes](#bugfixes)
@@ -864,6 +865,9 @@ The script can also be executed while skipping interactive mode by using the fol
 
 If you only enter some of the arguments you will be prompted to fill them in.
 
+### Development
+
+The long-term plan for removing the inherited `tiredofit/alpine` compatibility layer is tracked in [docs/compat-migration-plan.md](c:\Users\Abdulla\IDE\docker-db-backup\docs\compat-migration-plan.md).
 
 
 ## Support

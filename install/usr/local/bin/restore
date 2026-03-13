@@ -1,6 +1,6 @@
 #!/command/with-contenv /bin/bash
 
-source /assets/functions/00-container
+source /assets/functions/01-dbbackup-compat
 source /assets/defaults/10-db-backup
 source /assets/functions/10-db-backup
 PROCESS_NAME="db-backup-restore"
