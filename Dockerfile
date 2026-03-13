@@ -21,16 +21,20 @@ COPY install/assets/functions/01-dbbackup-build /usr/local/share/dbbackup/01-dbb
 
 # Keep runtime compatibility while moving the final image to official Alpine.
 COPY --from=compat /init /init
-COPY --from=compat /assets /assets
+COPY --from=compat /assets/.changelogs /assets/.changelogs
+COPY --from=compat /assets/defaults/00-container /assets/defaults/00-container
+COPY --from=compat /assets/defaults/02-permissions /assets/defaults/02-permissions
+COPY --from=compat /assets/defaults/03-monitoring /assets/defaults/03-monitoring
+COPY --from=compat /assets/defaults/04-scheduling /assets/defaults/04-scheduling
+COPY --from=compat /assets/defaults/05-logging /assets/defaults/05-logging
+COPY --from=compat /assets/defaults/06-messaging /assets/defaults/06-messaging
+COPY --from=compat /assets/defaults/07-firewall /assets/defaults/07-firewall
+COPY --from=compat /assets/functions/00-container /assets/functions/00-container
 COPY --from=compat /command /command
 COPY --from=compat /package /package
 COPY --from=compat /etc/cont-init.d /etc/cont-init.d
-COPY --from=compat /etc/cont-finish.d /etc/cont-finish.d
 COPY --from=compat /etc/s6-overlay /etc/s6-overlay
-COPY --from=compat /etc/services /etc/services
 COPY --from=compat /etc/services.available /etc/services.available
-COPY --from=compat /etc/services.d /etc/services.d
-COPY --from=compat /usr/local/bin /usr/local/bin
 
 ENV PATH="/command:/package/admin/s6-overlay/command:/package/admin/s6-overlay/bin:/package/admin/s6-overlay/sbin:${PATH}"
 
@@ -52,7 +56,7 @@ RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
     set -ex && \
     addgroup -S -g 10000 dbbackup && \
     adduser -S -D -H -u 10000 -G dbbackup -g "Tired of I.T! DB Backup" dbbackup && \
-    mkdir -p /usr/src /tmp/.container /backup /logs /tmp/backups && \
+    mkdir -p /usr/src /tmp/.container /backup /logs /tmp/backups /etc/cont-finish.d /etc/services.d /assets/cron /assets/logrotate && \
     package update && \
     package upgrade && \
     echo '@edge_main https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
