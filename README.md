@@ -189,7 +189,7 @@ The following directories are used for configuration and can be mapped for persi
 
 #### Base Images used
 
-This fork now uses an official [Alpine Linux](https://hub.docker.com/_/alpine) runtime base image and preserves the existing init/runtime compatibility layer used by the project scripts. Outgoing SMTP capabilities are handled via `msmtp`. Additional tools include: `bash`,`curl`,`less`,`logrotate`, `nano`.
+This fork now uses an official [Alpine Linux](https://hub.docker.com/_/alpine) runtime base image with a repo-owned entrypoint, scheduler, and helper layer. The inherited `tiredofit/alpine` runtime compatibility stage has been removed. Outgoing SMTP capabilities are handled via `msmtp`. Additional tools include: `bash`,`curl`,`less`,`logrotate`, `nano`.
 
 Be sure to view the following repositories to understand all the customizable options:
 
@@ -831,7 +831,7 @@ docker exec -it <container_name> bash
 
 Manual backups can be performed by entering the container and typing `backup-now`. This will execute all configured backup jobs. If you want to run a specific job, use `backup01-now` (or whatever job number you configured).
 
-- Recently there was a request to run the container with Kubernetes cron scheduling. This can be done by setting `MODE=MANUAL` and `MANUAL_RUN_FOREVER=FALSE` while disabling scheduler features from the upstream base image (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This allows the container to start, execute backups, and then exit cleanly. An alternative way to run the script is `/etc/services.available/10-db-backup/run`.
+- Recently there was a request to run the container with Kubernetes cron scheduling. This can be done by setting `MODE=MANUAL` and `MANUAL_RUN_FOREVER=FALSE` while disabling internal scheduling (`CONTAINER_ENABLE_SCHEDULING=FALSE`). This allows the container to start, execute backups, and then exit cleanly. For direct execution, use `backup-now` or `/usr/local/bin/dbbackup-job`.
 
 ### Local Smoke Test
 
@@ -867,7 +867,7 @@ If you only enter some of the arguments you will be prompted to fill them in.
 
 ### Development
 
-The long-term plan for removing the inherited `tiredofit/alpine` compatibility layer is tracked in [docs/compat-migration-plan.md](c:\Users\Abdulla\IDE\docker-db-backup\docs\compat-migration-plan.md).
+The completed migration away from the inherited `tiredofit/alpine` runtime is documented in [docs/compat-migration-plan.md](c:\Users\Abdulla\IDE\docker-db-backup\docs\compat-migration-plan.md).
 
 
 ## Support

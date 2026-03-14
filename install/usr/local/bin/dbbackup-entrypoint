@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+source /assets/functions/01-dbbackup-compat
+source /assets/defaults/10-db-backup
+source /assets/functions/10-db-backup
+
+PROCESS_NAME="db-backup"
+
+mkdir -p /tmp/.container /backup "${LOG_PATH}" "${TEMP_PATH}"
+touch /tmp/.container/dbbackup-initialized
+
+configure_timezone
+write_msmtp_config
+db_backup_container_init
+create_schedulers backup
+
+children=()
+
+shutdown() {
+    local pid
+    for pid in "${children[@]:-}"; do
+        kill "${pid}" 2>/dev/null || true
+    done
+    wait || true
+}
+
+trap shutdown INT TERM
+
+if [ -x /usr/local/bin/logrotate_dbbackup ] ; then
+    (
+        while true; do
+            /usr/local/bin/logrotate_dbbackup >/dev/null 2>&1 || true
+            sleep 21600
+        done
+    ) &
+    children+=("$!")
+fi
+
+mapfile -t backup_instances < <(get_backup_instances)
+
+if [ "${#backup_instances[@]}" -eq 0 ] ; then
+    print_warn "No backup jobs configured. Container will stay idle."
+fi
+
+case "${MODE,,}" in
+    auto | default | "" )
+        if var_true "${CONTAINER_ENABLE_SCHEDULING}" ; then
+            for instance in "${backup_instances[@]}"; do
+                /usr/local/bin/dbbackup-job "${instance}" &
+                children+=("$!")
+            done
+        else
+            print_warn "CONTAINER_ENABLE_SCHEDULING=FALSE - not starting background schedulers."
+        fi
+    ;;
+    manual )
+        print_info "Running in Manual mode - Execute 'backup-now' to perform a manual backup"
+        if var_false "${MANUAL_RUN_FOREVER}" ; then
+            exit 0
+        fi
+    ;;
+    * )
+        print_warn "Unknown MODE='${MODE}', treating as MANUAL"
+        if var_false "${MANUAL_RUN_FOREVER}" ; then
+            exit 0
+        fi
+    ;;
+esac
+
+if [ "${#children[@]}" -eq 0 ] ; then
+    while true; do
+        sleep 86400
+    done
+else
+    wait -n "${children[@]}"
+fi

@@ -1,4 +1,4 @@
-#!/command/with-contenv /bin/bash
+#!/usr/bin/env bash
 
 source /assets/functions/01-dbbackup-compat
 source /assets/defaults/10-db-backup

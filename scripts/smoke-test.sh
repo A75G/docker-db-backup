@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS t(i INTEGER);
 INSERT INTO t VALUES (1);
 EOF
 
-docker run --rm -v "${SQLITE_BACKUP_DIR}:/data" "${IMAGE}" sh -lc 'sqlite3 /data/app.db < /data/init.sql' >/dev/null
+docker run --rm --entrypoint sh -v "${SQLITE_BACKUP_DIR}:/data" "${IMAGE}" -lc 'sqlite3 /data/app.db < /data/init.sql' >/dev/null
 
 docker run -d --name dbbackup-sqlite --network "${NET}" \
   -v "${SQLITE_BACKUP_DIR}:/data" \
@@ -203,7 +203,7 @@ CREATE TABLE IF NOT EXISTS t(i INTEGER);
 INSERT INTO t VALUES (1);
 EOF
 
-docker run --rm -v "${S3SRC_BACKUP_DIR}:/data" "${IMAGE}" sh -lc 'sqlite3 /data/s3.db < /data/init.sql' >/dev/null
+docker run --rm --entrypoint sh -v "${S3SRC_BACKUP_DIR}:/data" "${IMAGE}" -lc 'sqlite3 /data/s3.db < /data/init.sql' >/dev/null
 
 docker run -d --name dbbackup-s3 --network "${NET}" \
   -v "${S3SRC_BACKUP_DIR}:/data" \

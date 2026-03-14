@@ -1,8 +1,47 @@
 # Compat Migration Plan
 
+Status: completed in March 2026.
+
 ## Goal
 
 Remove the `compat` build stage based on `tiredofit/alpine` and replace it with repo-owned runtime logic on top of official Alpine.
+
+## Outcome
+
+The migration is complete. The image now:
+
+- builds directly from official Alpine
+- uses a repo-owned entrypoint and job runner
+- uses repo-owned helper functions instead of sourcing upstream `00-container`
+- no longer copies runtime files from a `compat` build stage
+- no longer depends on upstream `/init`, `/command/with-contenv`, or `/etc/services.available`
+
+## Implemented Runtime
+
+Current runtime entry points:
+
+- `/usr/local/bin/dbbackup-entrypoint`
+- `/usr/local/bin/dbbackup-job`
+- `/assets/functions/01-dbbackup-compat`
+
+Current manual execution paths:
+
+- `backup-now`
+- `backup01-now`
+- `/usr/local/bin/dbbackup-job 01 now`
+
+## Validation
+
+The compat-free image was validated locally with Docker smoke coverage for:
+
+- PostgreSQL 18 backup and restore
+- MySQL 8 backup and restore
+- Redis backup
+- MongoDB backup
+- SQLite backup
+- S3/MinIO upload
+
+No zabbix references appeared in runtime logs during the smoke run.
 
 The migration must preserve:
 

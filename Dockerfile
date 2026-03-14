@@ -1,11 +1,7 @@
-ARG DISTRO=alpine
-ARG DISTRO_VARIANT=3.21-7.10.28
 ARG ENABLE_INFLUX1_CLIENT=false
 ARG ENABLE_MYSQL_SOURCE_CLIENT=false
 ARG ENABLE_BLOBXFER=false
 ARG ENABLE_MSSQL_CLIENT=false
-
-FROM docker.io/tiredofit/${DISTRO}:${DISTRO_VARIANT} AS compat
 
 FROM alpine:3.23.3
 LABEL maintainer="Dave Conroy (github.com/tiredofit)"
@@ -19,25 +15,6 @@ RUN apk add --no-cache bash ca-certificates curl
 
 COPY install/assets/functions/01-dbbackup-build /usr/local/share/dbbackup/01-dbbackup-build
 
-# Keep runtime compatibility while moving the final image to official Alpine.
-COPY --from=compat /init /init
-COPY --from=compat /assets/.changelogs /assets/.changelogs
-COPY --from=compat /assets/defaults/00-container /assets/defaults/00-container
-COPY --from=compat /assets/defaults/02-permissions /assets/defaults/02-permissions
-COPY --from=compat /assets/defaults/03-monitoring /assets/defaults/03-monitoring
-COPY --from=compat /assets/defaults/04-scheduling /assets/defaults/04-scheduling
-COPY --from=compat /assets/defaults/05-logging /assets/defaults/05-logging
-COPY --from=compat /assets/defaults/06-messaging /assets/defaults/06-messaging
-COPY --from=compat /assets/defaults/07-firewall /assets/defaults/07-firewall
-COPY --from=compat /assets/functions/00-container /assets/functions/00-container
-COPY --from=compat /command /command
-COPY --from=compat /package /package
-COPY --from=compat /etc/cont-init.d /etc/cont-init.d
-COPY --from=compat /etc/s6-overlay /etc/s6-overlay
-COPY --from=compat /etc/services.available /etc/services.available
-
-ENV PATH="/command:/package/admin/s6-overlay/command:/package/admin/s6-overlay/bin:/package/admin/s6-overlay/sbin:${PATH}"
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 ENV INFLUX1_CLIENT_VERSION=1.8.0 \
@@ -50,13 +27,14 @@ ENV INFLUX1_CLIENT_VERSION=1.8.0 \
     CONTAINER_ENABLE_MESSAGING=TRUE \
     CONTAINER_ENABLE_MONITORING=FALSE \
     IMAGE_NAME="a75g/docker-db-backup" \
+    IMAGE_VERSION="dev" \
     IMAGE_REPO_URL="https://github.com/A75G/docker-db-backup/"
 
 RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
     set -ex && \
     addgroup -S -g 10000 dbbackup && \
     adduser -S -D -H -u 10000 -G dbbackup -g "Tired of I.T! DB Backup" dbbackup && \
-    mkdir -p /usr/src /tmp/.container /backup /logs /tmp/backups /etc/cont-finish.d /etc/services.d /assets/cron /assets/logrotate && \
+    mkdir -p /usr/src /tmp/.container /backup /logs /tmp/backups /assets/cron /assets/logrotate && \
     package update && \
     package upgrade && \
     echo '@edge_main https://dl-cdn.alpinelinux.org/alpine/edge/main' >> /etc/apk/repositories && \
@@ -104,6 +82,7 @@ RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
                     py3-s3transfer \
                     py3-yaml \
                     python3 \
+                    msmtp \
                     sqlite \
                     sudo \
                     tzdata \
@@ -192,9 +171,10 @@ RUN source /usr/local/share/dbbackup/01-dbbackup-build && \
 
 COPY install  /
 
-RUN find /assets /etc/cont-init.d /usr/local/bin -type f -exec sed -i 's/\r$//' {} +
+RUN find /assets /usr/local/bin -type f -exec sed -i 's/\r$//' {} + && \
+    chmod +x /usr/local/bin/dbbackup-entrypoint /usr/local/bin/dbbackup-job /usr/local/bin/restore /usr/local/bin/logrotate_dbbackup
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD sh -ec 'for b in bash pg_dump psql mysqldump mongodump redis-cli sqlite3; do command -v "$b" >/dev/null || exit 1; done'
 
-ENTRYPOINT ["/init"]
+ENTRYPOINT ["/usr/local/bin/dbbackup-entrypoint"]

@@ -1,16 +1,19 @@
-#!/command/with-contenv bash
+#!/usr/bin/env bash
 
-# Repo-owned compatibility shim. This keeps current runtime behavior stable
-# while gradually replacing the inherited tiredofit helper surface.
-
-if [ -z "${DBBACKUP_COMPAT_HELPERS_LOADED}" ] ; then
-    export DBBACKUP_COMPAT_HELPERS_LOADED=TRUE
-
-    if [ -f /assets/functions/00-container ] ; then
-        # shellcheck disable=SC1091
-        source /assets/functions/00-container
-    fi
+if [ -n "${DBBACKUP_COMPAT_HELPERS_LOADED:-}" ] ; then
+    return 0 2>/dev/null || exit 0
 fi
+DBBACKUP_COMPAT_HELPERS_LOADED=TRUE
+
+: "${CONTAINER_LOG_LEVEL:=notice}"
+: "${DEBUG_MODE:=FALSE}"
+: "${SHOW_OUTPUT:=FALSE}"
+: "${CONTAINER_ENABLE_SCHEDULING:=TRUE}"
+: "${CONTAINER_ENABLE_LOGSHIPPING:=FALSE}"
+: "${ENABLE_NOTIFICATIONS:=FALSE}"
+: "${LOGROTATE_RETAIN_DAYS:=7}"
+: "${IMAGE_NAME:=a75g/docker-db-backup}"
+: "${IMAGE_VERSION:=dev}"
 
 output_off() {
     if [ "${DEBUG_MODE,,}" = "true" ] ; then
@@ -20,35 +23,14 @@ output_off() {
 
 output_on() {
     if [ "${DEBUG_MODE,,}" = "true" ] ; then
-        case "$(basename "$0")" in
-            0*-* | 99-* )
-                :
-            ;;
-            run )
-                case "$PWD" in
-                    */0*-* | 99-* )
-                        :
-                    ;;
-                    * )
-                        set -x
-                    ;;
-                esac
-            ;;
-            * )
-                set -x
-            ;;
-        esac
+        set -x
     fi
 }
 
 debug() {
     case "${1,,}" in
-        "on" | "true" )
-            set -x
-        ;;
-        "off" | "false" )
-            set +x
-        ;;
+        on | true ) set -x ;;
+        off | false ) set +x ;;
     esac
 }
 
@@ -86,6 +68,14 @@ var_true() {
     [ "${1,,}" = "true" ] || [ "${1,,}" = "yes" ]
 }
 
+var_nottrue() {
+    ! var_true "${1:-}"
+}
+
+dir_notempty() {
+    [ -d "${1}" ] && find "${1}" -mindepth 1 -maxdepth 1 | read -r _
+}
+
 dbbackup_print() {
     local level="$1"
     shift
@@ -94,19 +84,19 @@ dbbackup_print() {
 
     prefix="$(date +"%Y-%m-%d.%H:%M:%S ")"
     output_off
-    echo -e "${prefix}[${level}] ** [${PROCESS_NAME}] ${message}"
+    echo -e "${prefix}[${level}] ** [${PROCESS_NAME:-db-backup}] ${message}"
     output_on
 }
 
 print_debug() {
     case "${CONTAINER_LOG_LEVEL,,}" in
-        "debug" ) dbbackup_print "DEBUG" "$*" ;;
+        debug ) dbbackup_print "DEBUG" "$*" ;;
     esac
 }
 
 print_error() {
     case "${CONTAINER_LOG_LEVEL,,}" in
-        "debug" | "notice" | "warn" | "error" ) dbbackup_print "ERROR" "$*" ;;
+        debug | notice | warn | error ) dbbackup_print "ERROR" "$*" ;;
     esac
 }
 
@@ -116,12 +106,111 @@ print_info() {
 
 print_notice() {
     case "${CONTAINER_LOG_LEVEL,,}" in
-        "debug" | "notice" ) dbbackup_print "NOTICE" "$*" ;;
+        debug | notice ) dbbackup_print "NOTICE" "$*" ;;
     esac
 }
 
 print_warn() {
     case "${CONTAINER_LOG_LEVEL,,}" in
-        "debug" | "notice" | "warn" ) dbbackup_print "WARN" "$*" ;;
+        debug | notice | warn ) dbbackup_print "WARN" "$*" ;;
     esac
+}
+
+write_log() {
+    local level="${1,,}"
+    shift
+    case "${level}" in
+        debug ) print_debug "$*" ;;
+        info ) print_info "$*" ;;
+        notice ) print_notice "$*" ;;
+        warn | warning ) print_warn "$*" ;;
+        error ) print_error "$*" ;;
+        * ) dbbackup_print "${level^^}" "$*" ;;
+    esac
+}
+
+prepare_service() {
+    :
+}
+
+liftoff() {
+    :
+}
+
+service_stop() {
+    :
+}
+
+check_container_initialized() {
+    [ -f /tmp/.container/dbbackup-initialized ]
+}
+
+check_service_initialized() {
+    return 0
+}
+
+clone_git_repo() {
+    local repo="$1"
+    local ref="$2"
+    local target="${3:-/usr/src/$(basename "${repo%.git}")}"
+
+    rm -rf "${target}"
+    git clone --depth 1 --branch "${ref}" "${repo}" "${target}"
+    cd "${target}"
+}
+
+configure_timezone() {
+    if [ -z "${TIMEZONE:-}" ] ; then
+        return 0
+    fi
+
+    if [ ! -e "/usr/share/zoneinfo/${TIMEZONE}" ] ; then
+        print_warn "Timezone: ${TIMEZONE} does not exist - Using ''"
+        return 0
+    fi
+
+    ln -snf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
+    printf '%s\n' "${TIMEZONE}" > /etc/timezone
+    print_info "Timezone: Setting to '${TIMEZONE}' from ''"
+}
+
+write_msmtp_config() {
+    local host="${SMTP_HOST:-}"
+    local port="${SMTP_PORT:-}"
+
+    if [ -z "${host}" ] || [ -z "${port}" ] ; then
+        return 0
+    fi
+
+    cat > /etc/msmtprc <<EOF
+defaults
+auth           off
+tls            off
+syslog         off
+logfile        /dev/stderr
+
+account        default
+host           ${host}
+port           ${port}
+EOF
+
+    chmod 600 /etc/msmtprc
+}
+
+get_backup_instances() {
+    local count
+    local instance
+
+    count=$(set -o posix ; set | grep -Pc "^(DB[0-9][0-9]_HOST=|DB[0-9][0-9]_MONGO_CUSTOM_URI=)")
+    if [ -n "${DB_HOST:-}" ] || [ -n "${MONGO_CUSTOM_URI:-}" ] ; then
+        count=1
+    fi
+
+    if [ "${count:-0}" -le 0 ] ; then
+        return 0
+    fi
+
+    for (( instance = 1; instance <= count; instance++ )) ; do
+        printf '%02d\n' "${instance}"
+    done
 }

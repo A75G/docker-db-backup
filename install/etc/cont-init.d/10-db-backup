@@ -1,12 +1,3 @@
-#!/command/with-contenv bash
+#!/usr/bin/env bash
 
-source /assets/functions/01-dbbackup-compat
-prepare_service single
-PROCESS_NAME="db-backup"
-output_off
-
-setup_mode
-db_backup_container_init
-create_schedulers backup
-
-liftoff
+exec /usr/local/bin/dbbackup-entrypoint "$@"
